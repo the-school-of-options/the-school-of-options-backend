@@ -1,14 +1,19 @@
 import { Router } from "express";
 import { subscriberController } from "../controllers/subscriber.controller";
+import { loginRequired } from "../middleware/auth.middleware";
 
-const router = Router();
+const subscriberRouter = Router();
 
-router.post("/", subscriberController.create);
+subscriberRouter.post("/", subscriberController.create);
 
-router.get("/", subscriberController.findAll);
+subscriberRouter.get("/", [loginRequired], subscriberController.findAll);
 
-router.get("/:id", subscriberController.findOneById);
+subscriberRouter.get("/:id", [loginRequired], subscriberController.findOneById);
 
-router.get("/by-email/search", subscriberController.findOneByEmail);
+subscriberRouter.get(
+  "/by-email/search",
+  [loginRequired],
+  subscriberController.findOneByEmail
+);
 
-export default router;
+export default subscriberRouter;
