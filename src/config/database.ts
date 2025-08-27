@@ -37,7 +37,7 @@ const connectToMongo = async (uri: string): Promise<void> => {
 };
 
 export const connectToProdDb = async (): Promise<void> => {
-  const uri = process.env.MONGODB_URI || " mongodb+srv://tech:H4tsJCTcXIKcOtnN@cluster0.qhgm4ia.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+  const uri = process.env.MONGODB_URI || "mongodb+srv://tech:w4k4qEYbgSA1jdHc@cluster0.mk4kiod.mongodb.net/school-of-options?retryWrites=true&w=majority&appName=Cluster0"
   console.log("Current URI:", uri);
   if (!uri) {
     throw new Error(

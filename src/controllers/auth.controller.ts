@@ -2,8 +2,7 @@ import { Request, Response } from "express";
 import { IUser } from "../models/user.model";
 import { authService } from "../services/auth.service";
 import { userService } from "../services/user.service";
-import { OTPService } from "../utils/otp";
-import { EmailService } from "../utils/emailservice";
+
 import {
   createToken,
   decodeTokenPayload,
@@ -29,48 +28,18 @@ const signUp = async (req: Request, res: Response) => {
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
       cognitoId: cognitoUserId,
-      role: "user",
-      isInstructor: false,
-      isVerified: false,
-      isActive: true,
-      loginCount: 0,
-      enrolledCourses: [],
-      wishlist: [],
-      cart: [],
-      purchasedCourses: [],
-      reviewsGiven: [],
-      certificates: [],
-      profileVisibility: "public",
-      showCourses: true,
-      showCertificates: true,
+      role: "super-admin",
     };
 
     const user = await userService.createUserData(userData);
 
-    const otpData = OTPService.createOTPData("email_verification");
-    user.otp = otpData;
     await user.save();
-
-    // const emailSent = await EmailService.sendOTP(
-    //   user.email,
-    //   otpData.code,
-    //   user.fullName,
-    //   "email_verification"
-    // );
-
-    // if (!emailSent) {
-    //   return res.status(500).json({
-    //     error: "Failed to send verification email. Please try again.",
-    //   });
-    // }
 
     const responseUser = {
       _id: user._id,
       email: user.email,
-      otpData: otpData,
       fullName: user.fullName,
       role: user.role,
-      isVerified: user.isVerified,
       needsVerification: true,
     };
 
@@ -89,13 +58,8 @@ const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   try {
     const userInfo = await userService.getUserByEmail(email);
-    if (userInfo.isVerified === false) {
-      res.status(403).json({ error: "Please verify your email." });
-      return;
-    }
+
     const tokens = await authService.loginUser(email, password);
-    userInfo.lastLogin = new Date();
-    await userInfo.save();
     const decodedToken = decodeTokenPayload(tokens.AccessToken);
     res.json({
       tokens,
@@ -134,18 +98,9 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     const resetLink = `${process.env.PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`;
 
-    const emailSent = await EmailService.sendOTP(
-      user.email,
+    return res.status(200).json({
       resetLink,
-      user.fullName,
-      "password_reset"
-    );
-
-    if (!emailSent) {
-      return res.status(500).json({
-        error: "Failed to send verification email. Please try again.",
-      });
-    }
+    });
 
     // res
     //   .status(200)

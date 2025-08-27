@@ -9,7 +9,7 @@ import AWS_CognitoIdentityServiceProvider, {
 } from "@aws-sdk/client-cognito-identity-provider";
 import * as crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
-import { userService } from "./user.service"; 
+import { userService } from "./user.service";
 import { verifyToken } from "../utils/bcryptUtils";
 
 export const cognitoIdentityServiceProvider =
@@ -439,10 +439,6 @@ export const authService = {
         Username: username,
         UserAttributes: [{ Name: "email_verified", Value: "true" }],
       });
-      
-      const user = await userService.getUserByEmail(verifiedToken.email);
-      user.isVerified = true;
-      await user.save();
 
       try {
         await cognitoIdentityServiceProvider.adminConfirmSignUp({
