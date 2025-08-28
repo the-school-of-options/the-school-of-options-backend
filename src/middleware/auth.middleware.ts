@@ -87,6 +87,7 @@ export const getTokenFromHeader = async (token: string) => {
         clientId: process.env.AWS_COGNITO_CLIENT_ID!,
       });
       tokenData = await verifier.verify(token);
+      console.log("tokenData", tokenData)
     } catch {
       throw new Error("Invalid Cognito token");
     }
