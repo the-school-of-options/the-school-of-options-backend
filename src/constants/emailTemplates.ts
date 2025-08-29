@@ -29,7 +29,7 @@ export const EMAIL_TEMPLATES = {
         }
         .header { 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
+            color: #000000; 
             padding: 40px 20px; 
             text-align: center; 
         }
@@ -61,7 +61,7 @@ export const EMAIL_TEMPLATES = {
             border-radius: 12px;
         }
         .otp-label {
-            color: #6c757d;
+            color: #00000;
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -70,7 +70,7 @@ export const EMAIL_TEMPLATES = {
         .otp-code { 
             display: inline-block;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            color: #000000;
             padding: 20px 40px;
             border-radius: 12px;
             font-size: 36px;
@@ -105,7 +105,7 @@ export const EMAIL_TEMPLATES = {
             margin: 30px 0;
         }
         .welcome-text {
-            color: #495057;
+            color: #000000;
             font-size: 16px;
             margin: 20px 0;
         }
@@ -175,7 +175,7 @@ export const EMAIL_TEMPLATES = {
         
         <div class="footer">
             <div class="social-links">
-                <a href="https://schoolofoptions.com">🌐 Website</a>
+                <a href="https://www.theschoolofoptions.com">🌐 Website</a>
                 <a href="mailto:support@schoolofoptions.com">✉️ Support</a>
             </div>
             <p>This is an automated message, please do not reply to this email.</p>
