@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import AWS_CognitoIdentityServiceProvider, {
   AdminListGroupsForUserCommandOutput,
   AdminSetUserPasswordCommandOutput,
@@ -9,7 +10,7 @@ import AWS_CognitoIdentityServiceProvider, {
 } from "@aws-sdk/client-cognito-identity-provider";
 import * as crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
-import { verifyToken } from "../utils/bcryptUtils";
+import User from "../models/user.model";
 
 export const cognitoIdentityServiceProvider =
   new CognitoIdentityServiceProvider({
@@ -416,21 +417,51 @@ export const authService = {
     }
   },
 
-  confirmEmail: async (token: string) => {
+  confirmEmail: async (email: string, otp: string) => {
     try {
-      const verifiedToken = await verifyToken(token);
+      const safeEmail = email.trim().toLowerCase();
+      const userData = await User.findOne({ email: safeEmail });
 
-      if (!verifiedToken?.userId) {
-        throw new Error("Invalid or expired token");
+      if (!userData) {
+        throw new Error("User not found. Please try registering again.");
+      }
+      if (!userData.otp || !userData.otp.expiresAt) {
+        throw new Error(
+          "No active verification code. Please request a new one."
+        );
+      }
+      if ((userData.otp.attempts ?? 0) >= 5) {
+        throw new Error("Too many attempts. Please request a new code.");
       }
 
-      let username = verifiedToken.userId;
+      const now = new Date();
+      if (userData.otp.expiresAt <= now) {
+        throw new Error("Verification code expired. Please request a new one.");
+      }
 
-      if (!verifiedToken.userId.includes("@") && verifiedToken.email) {
-        const user = await authService.findUserByEmail(verifiedToken.email);
-        if (user && user.Username) {
-          username = user.Username;
-        }
+      let isMatch = false;
+      if (userData.otp.code === otp) {
+        isMatch = true;
+        userData.otp.attempts = 0;
+        userData.otp.code = null;
+        userData.otp.expiresAt = undefined;
+      }
+
+      if (!isMatch) {
+        userData.otp.attempts = (userData.otp.attempts ?? 0) + 1;
+        await userData.save();
+        throw new Error("Invalid verification code.");
+      }
+
+      userData.isVerified = true;
+      userData.otp = undefined;
+      await userData.save();
+
+      let username = userData._id as unknown as string;
+      if (!username || (!username.includes("@") && userData.email)) {
+        const cognitoUser = await authService.findUserByEmail(userData.email);
+        if (cognitoUser?.Username) username = cognitoUser.Username;
+        else username = userData.email;
       }
 
       await cognitoIdentityServiceProvider.adminUpdateUserAttributes({
@@ -444,24 +475,30 @@ export const authService = {
           UserPoolId: userPoolId,
           Username: username,
         });
-      } catch (error) {
-        if (error.code !== "NotAuthorizedException") {
+      } catch (err: any) {
+        if (err.code !== "NotAuthorizedException") {
           console.error(
             "Error confirming user during email verification:",
-            error
+            err
           );
+          throw err;
         }
       }
-    } catch (error) {
+
+      return { ok: true };
+    } catch (error: any) {
       console.error("Failed to verify email:", error);
 
       if (error.code === "UserNotFoundException") {
         throw new Error("User not found. Please try registering again.");
       }
       if (error.code === "TooManyRequestsException") {
-        throw new Error("Too many requests. Please try again later");
+        throw new Error("Too many requests. Please try again later.");
       }
-
+      // bubble up our custom messages (e.g., invalid/expired/too many attempts)
+      if (error.message) {
+        throw new Error(error.message);
+      }
       throw new Error("Failed to confirm email. Please try again.");
     }
   },

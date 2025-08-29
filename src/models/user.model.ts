@@ -7,8 +7,46 @@ export interface IUser {
   fullName: string;
   googleId?: string;
   isGoogleAcc?: boolean;
-  role: "super-admin";
+  role: "admin" | "user";
+  otp?: {
+    code: string;
+    expiresAt: Date;
+    attempts: number;
+    lastSentAt?: Date;
+    verified: boolean;
+    type: "email_verification" | "password_reset";
+  };
+  isVerified: boolean;
+  isActive: boolean;
+  lastLogin?: Date;
+  loginCount: number;
 }
+
+const otpSchema = new Schema({
+  code: {
+    type: String,
+    required: true,
+  },
+  expiresAt: {
+    type: Date,
+    required: true,
+  },
+  attempts: {
+    type: Number,
+    default: 0,
+    max: 5,
+  },
+  lastSentAt: Date,
+  verified: {
+    type: Boolean,
+    default: false,
+  },
+  type: {
+    type: String,
+    enum: ["email_verification", "password_reset", "login"],
+    required: true,
+  },
+});
 
 const userSchema = new Schema<IUser>(
   {
@@ -18,6 +56,7 @@ const userSchema = new Schema<IUser>(
       sparse: true,
       index: true,
     },
+
     email: {
       type: String,
       required: true,
@@ -35,28 +74,51 @@ const userSchema = new Schema<IUser>(
       trim: true,
       maxlength: 100,
     },
+
     googleId: {
       type: String,
       sparse: true,
     },
+
     isGoogleAcc: {
       type: Boolean,
       default: false,
     },
+
     role: {
       type: String,
-      enum: ["super-admin"],
-      // default: "user",
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    otp: {
+      type: otpSchema,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    lastLogin: Date,
+    loginCount: {
+      type: Number,
+      default: 0,
     },
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-// userSchema.index({ email: 1 });
-// userSchema.index({ cognitoId: 1 });
-// userSchema.index({ role: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ cognitoId: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ isActive: 1 });
 
 const User = mongoose.model<IUser>("User", userSchema);
 
