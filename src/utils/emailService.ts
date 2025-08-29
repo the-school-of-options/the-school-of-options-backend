@@ -27,7 +27,7 @@ export class EmailService {
 
     try {
       await AWSUtils.sendEmail(
-        "hello@atomclass.com",
+        "hello@theschoolofoptions.com",
         [email],
         config.template,
         {

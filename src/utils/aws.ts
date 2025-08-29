@@ -184,7 +184,7 @@ export const AWSUtils = {
 };
 
 export const setupEmailTemplates = async () => {
-  console.log("🔧 Setting up email templates for AtomClass...");
+  console.log("🔧 Setting up email templates for TheSchoolOfOptions...");
   await AWSUtils.initializeTemplates();
   await AWSUtils.listTemplates();
 

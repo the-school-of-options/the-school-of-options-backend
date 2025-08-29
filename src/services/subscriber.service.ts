@@ -35,9 +35,6 @@ export const subscriberService = {
     return Subscriber.findOne({ email: normalizeEmail(email) }).lean();
   },
 
-  /**
-   * Basic list with optional text search on email/fullName and pagination
-   */
   async findAll(opts?: {
     page?: number;
     limit?: number;
