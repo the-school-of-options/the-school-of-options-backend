@@ -60,11 +60,9 @@ const login = async (req: Request, res: Response) => {
     const userInfo = await userService.getUserByEmail(email);
 
     const tokens = await authService.loginUser(email, password);
-    const decodedToken = decodeTokenPayload(tokens.AccessToken);
     res.json({
       tokens,
       user: userInfo,
-      username: decodedToken?.username,
     });
   } catch (err: unknown) {
     if (err instanceof Error) {
