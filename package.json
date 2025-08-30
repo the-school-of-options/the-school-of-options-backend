@@ -26,6 +26,7 @@
     "@types/express": "^4.17.21",
     "@types/mongoose": "^5.11.97",
     "@types/node": "^22.5.5",
+    "@zoom/meetingsdk": "^4.0.0",
     "aws-jwt-verify": "^4.0.1",
     "aws-sdk": "^2.1691.0",
     "axios": "^1.7.7",

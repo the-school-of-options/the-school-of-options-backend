@@ -1,6 +1,7 @@
 import axios from "axios";
 import { Request, Response } from "express";
 import dotenv from "dotenv";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -9,7 +10,6 @@ const accountId = process.env.ZOOM_ACCOUNT_ID!;
 const clientSecret = process.env.ZOOM_CLIENT_SECRET!;
 const AUTH_URL = "https://zoom.us/oauth/token";
 const API = "https://api.zoom.us/v2";
-
 
 async function getAccessToken(): Promise<string> {
   const base64 = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
@@ -27,14 +27,13 @@ function bearerHeaders(token: string) {
   };
 }
 
-
 async function createMeeting(req: Request, res: Response) {
   try {
     const token = await getAccessToken();
 
     const payload = req.body?.zoomData ?? {
       topic: "Demo Application",
-      type: 2, 
+      type: 2,
       start_time: "2025-09-22T10:00:00+05:30",
       password: "12334",
       duration: 60,
@@ -59,8 +58,8 @@ async function createMeeting(req: Request, res: Response) {
       message: "meeting created",
       data: {
         meeting_id: data.id,
-        meeting_url: data.join_url, 
-        host_start_url: data.start_url, 
+        meeting_url: data.join_url,
+        host_start_url: data.start_url,
         meetingTime: data.start_time,
         purpose: data.topic,
         duration: data.duration,
@@ -77,52 +76,33 @@ async function createMeeting(req: Request, res: Response) {
   }
 }
 
-async function createWebinar(req: Request, res: Response) {
+async function createWebinarSignature(req: Request, res: Response) {
   try {
-    const token = await getAccessToken();
-    const userId = (req.body?.userId as string) || "me";
+    const { meetingNumber, role } = req.body;
+    const sdkKey = process.env.ZOOM_SDK_KEY;
+    const sdkSecret = process.env.ZOOM_SDK_SECRET;
 
-    const payload = req.body?.webinarData ?? {
-      topic: "Product Webinar",
-      type: 5,
-      start_time: "2025-09-25T10:00:00+05:30",
-      duration: 60,
-      timezone: "Asia/Kolkata",
-      settings: {
-        approval_type: 0, 
-        registration_type: 1,
-        panelists_video: true,
-        hd_video: true,
-        practice_session: true,
-        allow_multiple_devices: true,
-        question_answer: true,
-        registrants_email_confirmation: true,
-      },
+    const header = { alg: "HS256", typ: "JWT" };
+    const iat = Math.round(Date.now() / 1000) - 30;
+    const exp = iat + 60 * 2;
+    const payload = {
+      sdkKey,
+      mn: meetingNumber,
+      role,
+      iat,
+      exp,
+      appKey: sdkKey,
+      tokenExp: exp,
     };
 
-    const { status, data } = await axios.post(
-      `${API}/users/${encodeURIComponent(userId)}/webinars`,
-      payload,
-      { headers: bearerHeaders(token) }
-    );
+    const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString("base64url");
+    const data = `${b64(header)}.${b64(payload)}`;
+    const signature = `${data}.${crypto
+      .createHmac("sha256", sdkSecret)
+      .update(data)
+      .digest("base64url")}`;
 
-    if (status !== 201) {
-      return res.status(400).send({ message: "Webinar creation failed" });
-    }
-
-    return res.status(201).send({
-      message: "webinar created",
-      data: {
-        webinar_id: data.id,
-        host_start_url: data.start_url, 
-        registration_url: data.registration_url || null, 
-        join_url: data.join_url || null, 
-        webinarTime: data.start_time,
-        topic: data.topic,
-        duration: data.duration,
-        status: 1,
-      },
-    });
+    res.json({ signature });
   } catch (err: any) {
     const detail = err?.response?.data ?? err?.message ?? "Unknown error";
     const code = err?.response?.status ?? 500;
@@ -131,7 +111,6 @@ async function createWebinar(req: Request, res: Response) {
       .json({ message: "Failed to create webinar", detail });
   }
 }
-
 
 async function addWebinarPanelists(req: Request, res: Response) {
   try {
@@ -168,7 +147,6 @@ async function addWebinarPanelists(req: Request, res: Response) {
 
 export const zoomController = {
   createMeeting,
-  createWebinar,
+  createWebinarSignature,
   addWebinarPanelists,
 };
-
