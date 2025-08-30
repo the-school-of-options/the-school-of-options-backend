@@ -3,9 +3,9 @@ import { zoomController } from "../controllers/zoom.controller";
 
 const zoomRouter = Router();
 
-zoomRouter.post("/meeting", zoomController.createMeeting);
-zoomRouter.post("/webinar-signature", zoomController.createWebinarSignature);
-zoomRouter.post("/webinar/:webinarId/panelistsr", zoomController.addWebinarPanelists);
+zoomRouter.get("/webinar-list", zoomController.getWebinarList);
+zoomRouter.get("/single-webinar/:id", zoomController.getSingleWebinarInfo);
+zoomRouter.post("/webinar-signature", zoomController.creatingJoingSignature);
 
 
 export default zoomRouter;

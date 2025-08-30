@@ -1,152 +1,122 @@
-import axios from "axios";
 import { Request, Response } from "express";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import { zoomApi } from "../utils/zooomAuuth";
 
 dotenv.config();
 
-const clientId = process.env.ZOOM_CLIENT_ID!;
-const accountId = process.env.ZOOM_ACCOUNT_ID!;
-const clientSecret = process.env.ZOOM_CLIENT_SECRET!;
-const AUTH_URL = "https://zoom.us/oauth/token";
-const API = "https://api.zoom.us/v2";
-
-async function getAccessToken(): Promise<string> {
-  const base64 = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-  const url = `${AUTH_URL}?grant_type=account_credentials&account_id=${accountId}`;
-  const { data } = await axios.post(url, null, {
-    headers: { Authorization: `Basic ${base64}` },
-  });
-  return data.access_token as string;
-}
-
-function bearerHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
-}
-
-async function createMeeting(req: Request, res: Response) {
+async function getWebinarList(req: Request, res: Response) {
   try {
-    const token = await getAccessToken();
+    const hostEmail = "Kundan1kishore@gmail.com";
 
-    const payload = req.body?.zoomData ?? {
-      topic: "Demo Application",
-      type: 2,
-      start_time: "2025-09-22T10:00:00+05:30",
-      password: "12334",
-      duration: 60,
-      timezone: "Asia/Kolkata",
-      settings: {
-        join_before_host: true,
-        waiting_room: false,
-      },
-    };
-
-    const { status, data } = await axios.post(
-      `${API}/users/me/meetings`,
-      payload,
-      { headers: bearerHeaders(token) }
-    );
-
-    if (status !== 201) {
-      return res.status(400).send({ message: "Meeting creation failed" });
-    }
-
-    return res.status(201).send({
-      message: "meeting created",
-      data: {
-        meeting_id: data.id,
-        meeting_url: data.join_url,
-        host_start_url: data.start_url,
-        meetingTime: data.start_time,
-        purpose: data.topic,
-        duration: data.duration,
-        password: data.password,
-        status: 1,
-      },
+    const data = await zoomApi<{ webinars: any[] }>({
+      method: "GET",
+      url: `/users/${encodeURIComponent(hostEmail)}/webinars`,
+      params: { page_size: 50, type: "upcoming" },
     });
-  } catch (err: any) {
-    const detail = err?.response?.data ?? err?.message ?? "Unknown error";
-    const code = err?.response?.status ?? 500;
-    return res
-      .status(code)
-      .json({ message: "Failed to create meeting", detail });
+
+    res.json(data.webinars || []);
+  } catch (e: any) {
+    res.status(500).json({ error: e.response?.data || e.message });
   }
 }
 
-async function createWebinarSignature(req: Request, res: Response) {
+async function getSingleWebinarInfo(req: Request, res: Response) {
   try {
-    const { meetingNumber, role } = req.body;
-    const sdkKey = process.env.ZOOM_SDK_KEY;
-    const sdkSecret = process.env.ZOOM_SDK_SECRET;
+    const data = await zoomApi({
+      method: "GET",
+      url: `/webinars/${encodeURIComponent(req.params.id)}`,
+    });
+    res.json(data);
+  } catch (e: any) {
+    res.status(500).json({ error: e.response?.data || e.message });
+  }
+}
 
+function base64url(input: Buffer | string) {
+  const buf = typeof input === "string" ? Buffer.from(input) : input;
+  return buf
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+export async function creatingJoingSignature(req: Request, res: Response) {
+  try {
+    const rawMeetingNumber = (req.body?.meetingNumber ?? "").toString();
+    const roleNum = Number(req.body?.role ?? 0); // 0 attendee, 1 host
+
+    // 🔐 Read from env (rotate any secrets you’ve pasted publicly)
+    const sdkKey = "VAe1HjQBRkqstu2HzLA1Dg";
+    const sdkSecret = "nAb4XQg4K7XBhOXo4wLG98t21ePvj6TE";
+
+    if (!sdkKey) {
+      return res.status(500).json({ error: "ZOOM_SDK_KEY not set" });
+    }
+    if (!sdkSecret) {
+      return res.status(500).json({ error: "ZOOM_SDK_SECRET not set" });
+    }
+    if (!rawMeetingNumber) {
+      return res.status(400).json({ error: "Meeting number is required" });
+    }
+
+    // Digits only (Zoom rejects with hyphens/spaces)
+    const meetingNumber = rawMeetingNumber.replace(/\D/g, "");
+    if (!meetingNumber) {
+      return res
+        .status(400)
+        .json({ error: "Meeting number must contain digits" });
+    }
+
+    // ⏱️ times in **seconds**
+    const iat = Math.floor(Date.now() / 1000) - 30; // backdate 30s for skew
+    const ttlSeconds = 60 * 60 * 2; // 2 hours
+    const exp = iat + ttlSeconds;
+    const tokenExp = exp;
+
+    // JWT header & payload (Zoom v2 format)
     const header = { alg: "HS256", typ: "JWT" };
-    const iat = Math.round(Date.now() / 1000) - 30;
-    const exp = iat + 60 * 2;
     const payload = {
       sdkKey,
       mn: meetingNumber,
-      role,
+      role: roleNum, // ✅ use caller’s role
       iat,
       exp,
       appKey: sdkKey,
-      tokenExp: exp,
+      tokenExp,
     };
 
-    const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString("base64url");
-    const data = `${b64(header)}.${b64(payload)}`;
-    const signature = `${data}.${crypto
+    const encHeader = base64url(JSON.stringify(header));
+    const encPayload = base64url(JSON.stringify(payload));
+    const data = `${encHeader}.${encPayload}`;
+
+    const signature = crypto
       .createHmac("sha256", sdkSecret)
       .update(data)
-      .digest("base64url")}`;
+      .digest();
 
-    res.json({ signature });
-  } catch (err: any) {
-    const detail = err?.response?.data ?? err?.message ?? "Unknown error";
-    const code = err?.response?.status ?? 500;
-    return res
-      .status(code)
-      .json({ message: "Failed to create webinar", detail });
-  }
-}
+    const encSignature = base64url(signature);
+    const jwt = `${data}.${encSignature}`;
 
-async function addWebinarPanelists(req: Request, res: Response) {
-  try {
-    const { webinarId } = req.params;
-    const { panelists } = req.body as {
-      panelists: Array<{ name: string; email: string }>;
-    };
-    if (!webinarId || !Array.isArray(panelists) || panelists.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Provide webinarId and panelists[]" });
-    }
-
-    const token = await getAccessToken();
-    const { status, data } = await axios.post(
-      `${API}/webinars/${encodeURIComponent(webinarId)}/panelists`,
-      { panelists },
-      { headers: bearerHeaders(token) }
-    );
-
-    if (status !== 201) {
-      return res.status(400).send({ message: "Adding panelists failed" });
-    }
-
-    return res.status(201).json({ message: "panelists added", data });
-  } catch (err: any) {
-    const detail = err?.response?.data ?? err?.message ?? "Unknown error";
-    const code = err?.response?.status ?? 500;
-    return res
-      .status(code)
-      .json({ message: "Failed to add panelists", detail });
+    return res.status(200).json({
+      signature: jwt,
+      sdkKey, // optional: return so client can assert equality
+      meetingNumber,
+      role: roleNum,
+      exp,
+    });
+  } catch (error: any) {
+    console.error("[SIG] Error creating signature:", error);
+    return res.status(500).json({
+      error: "Failed to create signature",
+      details: error?.message ?? "Unknown error",
+    });
   }
 }
 
 export const zoomController = {
-  createMeeting,
-  createWebinarSignature,
-  addWebinarPanelists,
+  getWebinarList,
+  getSingleWebinarInfo,
+  creatingJoingSignature,
 };
