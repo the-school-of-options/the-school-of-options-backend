@@ -26,7 +26,7 @@ async function initializeServer() {
     app.use(express.json({ limit: "100mb" }));
     app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
-    const port = process.env.PORT || 8000;
+    const port = process.env.PORT || 9000;
 
     const { connectToProdDb, connectToTestDb } = await import("./config/database");
     const Routers = (await import("./routes")).default;
