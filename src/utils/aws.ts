@@ -24,7 +24,7 @@ const validateEmail = (email: string): boolean => {
 
 export const AWSUtils = {
   createTemplate: async (
-    templateConfig: typeof EMAIL_TEMPLATES.EMAIL_VERIFICATION_OTP
+    templateConfig: any
   ) => {
     try {
       const command = new CreateTemplateCommand({

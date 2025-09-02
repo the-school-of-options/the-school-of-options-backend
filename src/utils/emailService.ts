@@ -42,4 +42,34 @@ export class EmailService {
       return { success: false, message: "Failed to send OTP email", error };
     }
   }
+
+  static async sendTalkToCounsellorEmail(
+    name: string,
+    email: string,
+    phone: string
+  ) {
+    try {
+      await AWSUtils.sendEmail(
+        "hello@theschoolofoptions.com", 
+        ["hello@theschoolofoptions.com"], 
+        "CounsellorRequest", 
+        {
+          fullName: name,
+          email,
+          phone,
+        }
+      );
+      return {
+        success: true,
+        message: "Talk to Counsellor email sent successfully",
+      };
+    } catch (error: any) {
+      console.error("Failed to send Talk to Counsellor email:", error);
+      return {
+        success: false,
+        message: "Failed to send Talk to Counsellor email",
+        error,
+      };
+    }
+  }
 }

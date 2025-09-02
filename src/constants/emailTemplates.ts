@@ -204,4 +204,103 @@ This is an automated message, please do not reply.
 © 2025 The School of Options. All rights reserved.
 `,
   },
+  COUNSELLOR_REQUEST: {
+    TemplateName: "CounsellorRequest",
+    SubjectPart: "New Counsellor Request - The School of Options",
+    HtmlPart: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Counsellor Request</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      padding: 30px;
+      line-height: 1.6;
+    }
+    .content p {
+      margin: 10px 0;
+    }
+    .info-box {
+      background: #f1f3f5;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 14px;
+      color: #6c757d;
+      background: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>New Counsellor Request</h1>
+    </div>
+    <div class="content">
+      <p>Hello Team,</p>
+      <p>A new user has requested to talk to a counsellor. Here are the details:</p>
+
+      <div class="info-box">
+        <p><strong>Full Name:</strong> {{fullName}}</p>
+        <p><strong>Email Address:</strong> {{email}}</p>
+        <p><strong>Phone Number:</strong> {{phone}}</p>
+      </div>
+
+      <p>Please follow up with the user within <strong>24 hours</strong> to discuss the mentorship program.</p>
+
+      <p>Best regards,<br>
+      <strong>The School of Options System</strong></p>
+    </div>
+    <div class="footer">
+      <p>This is an automated notification. Please do not reply to this email.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    TextPart: `
+Hello Team,
+
+A new user has requested to talk to a counsellor. Details below:
+
+- Full Name: {{fullName}}
+- Email Address: {{email}}
+- Phone Number: {{phone}}
+
+Please follow up within 24 hours to discuss the mentorship program.
+
+Best regards,
+The School of Options System
+`,
+  },
 };

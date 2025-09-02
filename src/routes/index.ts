@@ -6,6 +6,7 @@ import subscriberRouter from "./subscriber.router";
 import zoomRouter from "./zoom.router";
 import webinarRouter from "./webinar.router";
 import otpRouter from "./otp.route";
+import talkToUsRouter from "./talktous";
 
 const Routers = Router();
 
@@ -15,6 +16,7 @@ Routers.use("/subscriber", subscriberRouter);
 Routers.use("/zoom", zoomRouter);
 Routers.use("/webinar", webinarRouter);
 Routers.use("/otp", otpRouter);
+Routers.use("/talktous", talkToUsRouter);
 
 
 export default Routers;
