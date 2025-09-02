@@ -54,15 +54,7 @@ const signUp = async (req: Request, res: Response) => {
       });
     }
 
-    const responseUser = {
-      _id: user._id,
-      email: user.email,
-      otpData: otpData,
-      fullName: user.fullName,
-      role: user.role,
-      isVerified: user.isVerified,
-      needsVerification: true,
-    };
+    const responseUser = {};
 
     res.status(200).json({
       message:
@@ -89,7 +81,13 @@ const login = async (req: Request, res: Response) => {
     const decodedToken = decodeTokenPayload(tokens.AccessToken);
     res.json({
       tokens,
-      user: userInfo,
+      user: {
+        _id: userInfo._id,
+        email: userInfo.email,
+        fullName: userInfo.fullName,
+        role: userInfo.role,
+        isVerified: userInfo.isVerified,
+      },
       username: decodedToken?.username,
     });
   } catch (err: unknown) {
