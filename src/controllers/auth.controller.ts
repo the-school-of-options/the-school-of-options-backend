@@ -6,9 +6,10 @@ import {
   decodeTokenPayload,
   verifyToken,
 } from "../utils/bcryptUtils";
-import { IUser } from "../models/user.model";
+import User, { IUser } from "../models/user.model";
 import { OTPService } from "../utils/otp";
 import { EmailService } from "../utils/emailService";
+import { AuthRequest } from "../types/authReq.types";
 
 const signUp = async (req: Request, res: Response) => {
   const { email, password, fullName } = req.body;
@@ -104,8 +105,6 @@ const forgotPassword = async (req: Request, res: Response) => {
   try {
     const user = await userService.getUserByEmail(email);
 
-    console.log(user);
-
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -168,9 +167,26 @@ const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
+const getUserById = async (req: AuthRequest, res: Response) => {
+  try {
+    const { user } = req;
+    const userInfo = await User.findOne({
+      cognitoId: user.username,
+    });
+    if (!userInfo) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const { otp, ...userWithoutOtp } = userInfo.toObject();
+    res.json({ user: userWithoutOtp });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const authController = {
   signUp,
   login,
   forgotPassword,
   resetPassword,
+  getUserById,
 };
