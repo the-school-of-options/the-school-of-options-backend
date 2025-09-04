@@ -37,5 +37,44 @@ const uploadToCloudFlare = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to create upload URL" });
   }
 };
+const getUploadedVideoUrl = async (req: Request, res: Response) => {
+  const { uid } = req.params;
+  try {
+    const { data } = await axios.get(
+      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/${uid}`,
+      { headers: { Authorization: `Bearer ${CF_API_TOKEN}` } }
+    );
 
-export default { uploadToCloudFlare };
+    console.log("data", data);
+
+    if (!data?.success) return res.status(400).json(data);
+
+    const v = data.result;
+    // common fields:
+    // v.status.state = "queued" | "inprogress" | "ready" | "error";
+    // If the video is public (requireSignedURLs=false) you can use:
+    const playerEmbed = `<stream src="${uid}" controls></stream>`;
+    const iframe = `https://customer-${v.playback?.customerId || "<CODE>"}.cloudflarestream.com/${uid}/iframe`;
+    const hls = `https://videodelivery.net/${uid}/manifest/video.m3u8`;
+    const thumbnail = `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=2s`;
+
+    res.json({
+      success: true,
+      state: v.status?.state,
+      ready: v.readyToStream,
+      duration: v.duration,
+      preview: v.preview,
+      playerEmbed,
+      iframe,
+      hls,
+      thumbnail,
+    });
+  } catch (e: any) {
+    res.status(500).json({
+      error: "status_failed",
+      details: e?.response?.data || e.message,
+    });
+  }
+};
+
+export default { uploadToCloudFlare, getUploadedVideoUrl };
