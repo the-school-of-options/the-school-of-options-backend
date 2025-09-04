@@ -3,6 +3,7 @@ import axios from "axios";
 
 const CF_ACCOUNT_ID = "b5363f7e371d20a49d2ca4a628f4fddf";
 const CF_API_TOKEN = "Od8AXI2HG29UCAvgC6aZgk3E4Y3OWw2SGccOpwxN";
+
 const uploadToCloudFlare = async (req: Request, res: Response) => {
   if (!CF_ACCOUNT_ID || !CF_API_TOKEN) {
     console.error("Missing CF_ACCOUNT_ID or CF_API_TOKEN in environment.");
@@ -14,7 +15,7 @@ const uploadToCloudFlare = async (req: Request, res: Response) => {
       {
         // Optional knobs:
         // requireSignedURLs: true,
-        maxDurationSeconds: 1, // 0 = no explicit limit
+        maxDurationSeconds: 0, // Changed from 1 to 0 (no limit)
       },
       {
         headers: {
@@ -32,11 +33,12 @@ const uploadToCloudFlare = async (req: Request, res: Response) => {
 
     // Returns: { uploadURL, uid, ... }
     res.json(resp.data.result);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err?.response?.data || err.message);
     res.status(500).json({ error: "Failed to create upload URL" });
   }
 };
+
 const getUploadedVideoUrl = async (req: Request, res: Response) => {
   const { uid } = req.params;
   try {
@@ -50,24 +52,23 @@ const getUploadedVideoUrl = async (req: Request, res: Response) => {
     if (!data?.success) return res.status(400).json(data);
 
     const v = data.result;
-    // common fields:
-    // v.status.state = "queued" | "inprogress" | "ready" | "error";
-    // If the video is public (requireSignedURLs=false) you can use:
-    const playerEmbed = `<stream src="${uid}" controls></stream>`;
-    const iframe = `https://customer-${v.playback?.customerId || "<CODE>"}.cloudflarestream.com/${uid}/iframe`;
-    const hls = `https://videodelivery.net/${uid}/manifest/video.m3u8`;
-    const thumbnail = `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=2s`;
 
+    // Return data structure that matches what the frontend expects
     res.json({
       success: true,
-      state: v.status?.state,
+      state: v.readyToStream ? "ready" : v.status?.state || "processing",
       ready: v.readyToStream,
       duration: v.duration,
       preview: v.preview,
-      playerEmbed,
-      iframe,
-      hls,
-      thumbnail,
+      hls: v.playback?.hls,
+      dash: v.playback?.dash,
+      thumbnail: v.thumbnail,
+      uid: v.uid,
+      // Additional useful fields
+      playerEmbed: `<stream src="${uid}" controls></stream>`,
+      size: v.size,
+      created: v.created,
+      uploaded: v.uploaded,
     });
   } catch (e: any) {
     res.status(500).json({
