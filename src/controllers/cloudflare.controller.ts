@@ -13,7 +13,7 @@ const uploadToCloudFlare = async (req: Request, res: Response) => {
       `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/stream/direct_upload`,
       {
         // Optional knobs:
-        requireSignedURLs: true,
+        // requireSignedURLs: true,
         maxDurationSeconds: 1, // 0 = no explicit limit
       },
       {
